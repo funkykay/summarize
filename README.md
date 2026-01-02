@@ -1,67 +1,95 @@
 # Directory Summarizer
 
-A small CLI utility that recursively traverses a directory tree and prints the contents of files.  
-Traversal is controlled by layered `summarize.json` configuration files that provide gitignore-style (fnmatch-based) exclusion patterns.
+A small, dependency-free CLI tool that recursively traverses a directory tree
+and prints the contents of files in a stable, machine-readable stream.
+
+Traversal and filtering are controlled by layered `summarize.json` configuration
+files using gitignore-style (fnmatch-based) exclusion patterns.
+
+This tool is designed for:
+- feeding directory contents into LLMs or other tools,
+- reproducible, text-based snapshots of codebases.
+
+---
 
 ## Features
 
-- Recursively walks the current working directory
-- Prints each file preceded by a header line: `=== relative/path/to/file ===`
-- Skips files/directories using gitignore-style patterns
-- Supports layered configuration: each directory can add/override config via `summarize.json`
-- Configuration merges “down the tree”:
-  - `dict + dict` merges recursively
-  - `list + list` concatenates (e.g., excludes are cumulative)
-  - scalars are overwritten by later layers
+- Recursively walks a directory tree starting at the working directory
+- Outputs each file preceded by a stable header:
+  ```
+  === relative/path/to/file ===
+  ```
+- Prints UTF-8 file contents verbatim
+- Gracefully handles binary files and read errors
+- Layered configuration via `summarize.json` files at arbitrary depths
+- Gitignore-style exclusion patterns (documented below)
+- Standard-library only (Python 3.10+)
 
-## Requirements
+---
 
-- Python 3.10+ (recommended)
-- No external dependencies (standard library only)
+## Installation
 
-## Installation (recommended)
+The tool is a single Python file. No installation step is required.
 
-Just link to some directory that is exposed to the path
+Recommended usage is via symlink:
 
 ```bash
-ln -s /path/to/projects/summarize.py summarize
+ln -s /path/to/summarize.py summarize
 ```
 
+Ensure it is executable:
+
+```bash
+chmod +x summarize
+```
+
+---
 
 ## Usage
 
 Run from the directory you want to summarize:
 
 ```bash
-./summarize.py
-```
-or
-```bash
 summarize
 ```
 
-The tool will print a stream of:
+The output is a stream of:
 
-- file marker: `=== relative/path ===`
-- file contents (UTF-8)
-- a blank line separator
+1. File marker:
+   ```
+   === relative/path ===
+   ```
+2. File contents (UTF-8)
+3. A blank line separator
 
-If a file is not valid UTF-8, it prints:
+### Error Handling
 
-```
-[Binary file - content not displayable]
-```
+- Binary or non-UTF-8 files:
+  ```
+  [Binary file - content not displayable]
+  ```
+- Unreadable files:
+  ```
+  [Error reading file: ...]
+  ```
+- Inaccessible directories:
+  ```
+  [Access denied: relative/path]
+  ```
 
-If a file cannot be read:
+The tool never aborts the traversal due to a single file or directory.
 
-```
-[Error reading file: ...]
-```
+---
 
 ## Configuration: `summarize.json`
 
-The summarizer looks for a `summarize.json` in each directory it enters.  
-That config is pushed as a new overlay layer while processing that directory and its descendants.
+The summarizer looks for a file named `summarize.json` in **every directory it enters**.
+
+If found, that file is loaded as a new *configuration layer* that applies to:
+- the directory itself, and
+- all of its descendants.
+
+When leaving the directory, the layer is automatically removed.
 
 ### Example
 
@@ -77,27 +105,85 @@ That config is pushed as a new overlay layer while processing that directory and
 }
 ```
 
-### `excludes` patterns
+---
 
-Patterns are **gitignore-like** but implemented using Python `fnmatch`, so they are best understood as “gitignore-style matching,” not a byte-for-byte `.gitignore` equivalent.
+## Layering Semantics
 
-Supported behavior:
+Configuration layers are merged *top-down* using the following rules:
+
+- `dict + dict` → recursive merge
+- `list + list` → concatenation (cumulative)
+- scalars → later layers overwrite earlier ones
+
+This means:
+
+- `excludes` are **additive** down the directory tree
+- a deeper `summarize.json` does **not** replace parent excludes
+- negation patterns (`!`) only affect paths matched later
+
+### Example
+
+```
+.
+├─ summarize.json        (excludes ".git/")
+└─ project/
+   ├─ summarize.json     (excludes "node_modules/")
+   └─ src/
+```
+
+Running from `.` will exclude:
+- `.git/`
+- `project/node_modules/`
+
+---
+
+## Exclude Pattern Semantics
+
+Patterns are **gitignore-like**, implemented using Python’s `fnmatch`.
+
+Important: this is *not* a byte-for-byte reimplementation of Git’s ignore engine.
+The behavior is deterministic and documented here.
+
+### Supported Behavior
 
 - Empty lines and lines starting with `#` are ignored
-- Trailing `/` indicates “directory only” (e.g., `__pycache__/`)
-- Leading `/` anchors the match to the repository root (the directory where you ran the tool)
-- Patterns without a leading `/` are matched against:
-  - the full relative path, and
-  - each subpath segment (so `node_modules` will match any `node_modules` directory)
-- Negation patterns starting with `!` re-include matches (last match wins)
+- Trailing `/` → directory-only match
+  ```
+  __pycache__/
+  ```
+- Leading `/` → path is anchored to the root (start directory)
+  ```
+  /build/output.txt
+  ```
+- Patterns without leading `/` are matched against:
+  - the full relative path
+  - each subpath segment
+  - the filename / directory name itself
+- Negation patterns (`!`) re-include matches (last match wins)
 
-Important note: because config layers concatenate lists, `excludes` are **cumulative** down the tree. A deeper `summarize.json` adds additional excludes; it does not replace the parent excludes.
+### Practical Implications
 
-## How layering works (example)
+- `node_modules` will match **any** `node_modules` directory
+- `*.log` matches logs at any depth
+- `!/important.log` can re-include a previously excluded file
 
-Given:
+---
 
-- `./summarize.json` excludes `.git/`
-- `./project/summarize.json` excludes `node_modules/`
+## Non-Goals
 
-Running from `.` will exclude both `.git/` and any `node_modules/` under `project/`.
+This tool intentionally does **not**:
+
+- fully replicate Git’s ignore engine
+- parse `.gitignore` files automatically
+- follow symbolic links
+- attempt parallel traversal
+- redact secrets or sensitive data
+
+It assumes you explicitly control what is included via configuration.
+
+---
+
+## Requirements
+
+- Python 3.10 or newer
+- UTF-8 locale recommended

@@ -13,10 +13,9 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
-
-JsonDict = Dict[str, Any]
+JsonDict = dict[str, Any]
 PathLike = Union[str, Path]
 
 
@@ -26,13 +25,13 @@ class StrataConfig:
 
     Merge semantics:
     - dict + dict: recursive merge (extend)
-    - list + list: concatenate (extend): base_list + overlay_list  
+    - list + list: concatenate (extend): base_list + overlay_list
     - other types: overlay overwrites base
     """
 
     def __init__(self, base: Optional[JsonDict] = None) -> None:
         self._base: JsonDict = dict(base or {})
-        self._layers: List[_Layer] = []
+        self._layers: list[_Layer] = []
 
     @classmethod
     def from_file(cls, path: PathLike, *, encoding: str = "utf-8") -> "StrataConfig":
@@ -42,10 +41,6 @@ class StrataConfig:
     def load_base(self, path: PathLike, *, encoding: str = "utf-8") -> None:
         """Load/replace the base configuration from file (missing file results in empty dict)."""
         self._base = self._load_json(path, encoding=encoding)
-
-    # -----------------------------
-    # Layer Management
-    # -----------------------------
 
     def push_layer(
         self,
@@ -92,13 +87,9 @@ class StrataConfig:
         """Remove all overlay layers, keeping the base configuration."""
         self._layers.clear()
 
-    def list_layers(self) -> List[dict]:
+    def list_layers(self) -> list[dict[str, str]]:
         """Return metadata for all active layers (from oldest to newest)."""
         return [{"id": l.layer_id, "name": l.name, "path": l.path} for l in self._layers]
-
-    # -----------------------------
-    # Configuration Access API
-    # -----------------------------
 
     def get(self, dotted_path: str, default: Any = None) -> Any:
         """Get a value using dot notation. Returns default if not found."""
@@ -115,9 +106,9 @@ class StrataConfig:
         """Return True if the path exists."""
         try:
             self._get_or_raise(dotted_path)
-            return True
         except KeyError:
             return False
+        return True
 
     def to_dict(self) -> JsonDict:
         """Return the effectively merged configuration as a new dictionary."""
@@ -129,14 +120,8 @@ class StrataConfig:
     def __getitem__(self, dotted_path: str) -> Any:
         return self.require(dotted_path)
 
-    # -----------------------------
-    # Internal Implementation
-    # -----------------------------
-
     def _get_or_raise(self, dotted_path: str) -> Any:
         keys = self._split_path(dotted_path)
-
-        # For "list extension" access must happen on the merged view
         node: Any = self.to_dict()
 
         for depth, key in enumerate(keys):
@@ -154,7 +139,7 @@ class StrataConfig:
         return node
 
     @staticmethod
-    def _split_path(dotted_path: str) -> List[str]:
+    def _split_path(dotted_path: str) -> list[str]:
         p = dotted_path.strip()
         if not p:
             raise ValueError("dotted_path cannot be empty.")

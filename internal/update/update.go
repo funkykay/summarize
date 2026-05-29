@@ -18,6 +18,7 @@ import (
 const (
 	AppName         = "summarize"
 	APIBase         = "https://api.github.com"
+	GitHubBase      = "https://github.com"
 	DefaultRepoSlug = "funkykay/summarize"
 )
 
@@ -45,6 +46,11 @@ type HTTPClient interface {
 
 func Binary(repoSlug string, stdout io.Writer) error {
 	resolvedRepoSlug := DetectRepoSlug(repoSlug)
+	if runtime.GOOS == "windows" {
+		PrintManualUpdateInstructions(resolvedRepoSlug, stdout)
+		return nil
+	}
+
 	release, err := FetchLatestRelease(resolvedRepoSlug, http.DefaultClient)
 	if err != nil {
 		return err
@@ -79,16 +85,27 @@ func Binary(repoSlug string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	downloadPath := filepath.Join(filepath.Dir(currentBinaryPath), AppName+".new")
+	downloadPath := filepath.Join(filepath.Dir(currentBinaryPath), filepath.Base(currentBinaryPath)+".new")
 
 	if err := DownloadBinary(downloadURL, downloadPath, http.DefaultClient); err != nil {
 		return err
 	}
+	if err := ReplaceBinary(downloadPath, currentBinaryPath); err != nil {
+		return Error{Message: fmt.Sprintf("Downloaded %s %s to %s, but could not replace %s: %s", AppName, targetVersion, downloadPath, currentBinaryPath, err)}
+	}
 
-	fmt.Fprintf(stdout, "Downloaded %s %s to %s.\n", AppName, targetVersion, downloadPath)
-	fmt.Fprintln(stdout, "Run the following command to replace the current binary:")
-	fmt.Fprintf(stdout, "mv %s %s\n", shellQuote(downloadPath), shellQuote(currentBinaryPath))
+	fmt.Fprintf(stdout, "Updated %s from %s to %s. Restart the command to use the new version.\n", AppName, currentVersion, targetVersion)
 	return nil
+}
+
+func LatestReleaseURL(repoSlug string) string {
+	return GitHubBase + "/" + repoSlug + "/releases/latest"
+}
+
+func PrintManualUpdateInstructions(repoSlug string, stdout io.Writer) {
+	fmt.Fprintf(stdout, "Automatic updates are not supported on Windows because the running .exe cannot be replaced safely.\n")
+	fmt.Fprintf(stdout, "Please download and install the latest %s release manually:\n", AppName)
+	fmt.Fprintln(stdout, LatestReleaseURL(repoSlug))
 }
 
 func DetectRepoSlug(repoSlug string) string {
@@ -303,23 +320,26 @@ func DownloadBinary(downloadURL string, downloadPath string, client HTTPClient) 
 	return nil
 }
 
-func shellQuote(value string) string {
-	if value == "" {
-		return "''"
+func ReplaceBinary(newBinaryPath string, currentBinaryPath string) error {
+	if runtime.GOOS == "windows" {
+		return Error{Message: "automatic updates are not supported on Windows"}
 	}
 
-	needsQuoting := false
-	for _, char := range value {
-		if !(char >= 'A' && char <= 'Z') && !(char >= 'a' && char <= 'z') && !(char >= '0' && char <= '9') && !strings.ContainsRune("@%_+=:,./-", char) {
-			needsQuoting = true
-			break
-		}
+	currentInfo, err := os.Stat(currentBinaryPath)
+	if err != nil {
+		return Error{Message: err.Error()}
 	}
-	if !needsQuoting {
-		return value
+	if !currentInfo.Mode().IsRegular() {
+		return Error{Message: fmt.Sprintf("current binary is not a regular file: %s", currentBinaryPath)}
+	}
+	if err := os.Chmod(newBinaryPath, currentInfo.Mode().Perm()|0o111); err != nil {
+		return Error{Message: err.Error()}
+	}
+	if err := os.Rename(newBinaryPath, currentBinaryPath); err != nil {
+		return Error{Message: err.Error()}
 	}
 
-	return "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
+	return nil
 }
 
 func platformSystemName(goos string) string {

@@ -19,7 +19,7 @@
         "internal/"
       ]
     },
-    "tests": {
+    "test": {
       "include": [
         "test/"
       ]

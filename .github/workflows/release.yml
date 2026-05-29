@@ -1,0 +1,127 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Git tag to release
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
+
+      - name: Run vet
+        run: go vet ./...
+
+      - name: Run test suite
+        run: go test ./...
+
+  build-standalone-binaries:
+    name: Build standalone binary (${{ matrix.label }})
+    needs:
+      - test
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: linux-x64
+            goos: linux
+            goarch: amd64
+            asset_name: summarize-linux-x64
+
+          - label: linux-arm64
+            goos: linux
+            goarch: arm64
+            asset_name: summarize-linux-arm64
+
+          - label: macos-arm64
+            goos: darwin
+            goarch: arm64
+            asset_name: summarize-macos-arm64
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Resolve release version
+        id: release
+        shell: bash
+        run: |
+          release_tag="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "version=${release_tag#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build standalone executable
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          mkdir -p release-assets
+          go build \
+            -trimpath \
+            -ldflags "-s -w -X github.com/funkykay/summarize/internal/buildinfo.Version=${VERSION}" \
+            -o "release-assets/${{ matrix.asset_name }}" \
+            ./cmd/summarize
+          chmod +x "release-assets/${{ matrix.asset_name }}"
+
+      - name: Upload standalone binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: standalone-${{ matrix.label }}
+          path: release-assets/${{ matrix.asset_name }}
+
+  release:
+    name: Publish GitHub release
+    needs:
+      - build-standalone-binaries
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all standalone binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: standalone-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          generate_release_notes: true
+          files: release-assets/*

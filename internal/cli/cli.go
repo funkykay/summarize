@@ -23,6 +23,7 @@ type App struct {
 type globalOptions struct {
 	baseDir string
 	profile string
+	dryRun  bool
 }
 
 func New(stdout io.Writer, stderr io.Writer) App {
@@ -37,7 +38,7 @@ func (a App) Run(args []string) int {
 	}
 
 	if command == "" {
-		if err := summary.Create(options.profile, options.baseDir, a.stdout); err != nil {
+		if err := summary.Create(options.profile, options.baseDir, a.stdout, options.dryRun); err != nil {
 			fmt.Fprintf(a.stderr, "Error: %s\n", err)
 			return 1
 		}
@@ -165,6 +166,8 @@ func parseGlobalOptions(args []string) (globalOptions, string, []string, error) 
 			i++
 		case strings.HasPrefix(arg, "--profile="):
 			options.profile = strings.TrimPrefix(arg, "--profile=")
+		case arg == "--dry-run":
+			options.dryRun = true
 		case strings.HasPrefix(arg, "-"):
 			return globalOptions{}, "", nil, fmt.Errorf("unknown option: %s", arg)
 		default:

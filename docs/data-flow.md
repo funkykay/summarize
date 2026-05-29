@@ -3,16 +3,17 @@
 ## Default summary flow
 
 ```text
-1. User runs `summarize --base-dir /project --profile ci`.
+1. User runs `summarize --base-dir /project --profile ci`. For a path-only preview, the user adds `--dry-run`.
 
 2. `cmd/summarize/main.go` passes args and stdio writers to `cli.App.Run`.
 
 3. `internal/cli` parses global options.
    - `--base-dir` is resolved to an absolute existing directory.
    - `--profile` is stored as a string.
+   - `--dry-run` is stored as a boolean.
    - No command name means default summary mode.
 
-4. `internal/summary.Create` loads `/project/summarize.json`.
+4. `internal/summary.Create` receives the dry-run flag and loads `/project/summarize.json`.
    - Missing file becomes an empty config.
    - Invalid JSON or non-object JSON returns an error.
 
@@ -30,7 +31,7 @@
    - Evaluate prune rules for every entry.
    - Recurse into non-pruned directories.
    - Evaluate selection rules for non-pruned files.
-   - Print selected file blocks.
+   - Print selected file blocks, or selected file paths when dry-run mode is enabled.
    - Pop the local config layer before returning.
 
 8. `cli.App.Run` returns `0` on success or `1` on error.
@@ -47,7 +48,7 @@ entry path
      -> not pruned:
         -> directory: recurse
         -> file: selection check
-           -> allowed: print file block
+           -> allowed: print file block, or print only the relative path in dry-run mode
            -> rejected: skip file
 ```
 
@@ -94,7 +95,9 @@ base + profile
 
 ## Summary output generation
 
-For a selected file:
+In dry-run mode, a selected file only goes through path calculation and path normalization. The normalized relative path is printed as one line, and the file content is not read for output.
+
+For a selected file in normal summary mode:
 
 1. Calculate the path relative to the traversal base directory.
 2. Convert path separators to `/`.
@@ -111,13 +114,13 @@ For a selected file:
 
 ## Permission errors
 
-If reading a directory fails with `os.ErrPermission`, the error is converted into output:
+If reading a directory fails with `os.ErrPermission`, the error is converted into output during normal summary mode:
 
 ```text
 [Access denied: relative/path]
 ```
 
-Traversal then continues. Other directory read errors are returned as command errors.
+In dry-run mode, permission-denied directories are skipped without emitting an access-denied marker, because dry-run output contains only file paths. Traversal then continues. Other directory read errors are returned as command errors.
 
 ## `init` flow
 
@@ -148,3 +151,5 @@ Traversal then continues. Other directory read errors are returned as command er
 12. Rename temp file to `summarize.new`.
 13. Print the manual replacement command.
 ```
+
+

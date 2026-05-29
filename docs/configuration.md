@@ -246,3 +246,5 @@ Profile `selection_mode` is applied only when it is exactly `include_all` or `ex
 Profile pattern arrays are normalized by trimming entries and dropping empty strings. Non-string entries are ignored.
 
 Unknown profile names do not produce an error and do not change the output.
+
+

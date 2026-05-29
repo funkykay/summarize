@@ -9,6 +9,7 @@ It is designed for workflows where a complete, deterministic snapshot of relevan
 - Recursively traverses a directory tree.
 - Outputs files in deterministic lexicographic order.
 - Emits every included file as a parseable block using `=== path ===` headers.
+- Supports dry-run output for inspecting selected files without printing file contents.
 - Supports layered JSON configuration through `summarize.json` files.
 - Supports include, exclude, and prune patterns with gitignore-like matching.
 - Supports named profiles as configuration overlays.
@@ -55,6 +56,8 @@ Windows and macOS Intel are not mapped by the current updater.
 summarize
 summarize --base-dir path/to/project
 summarize --profile minimal
+summarize --dry-run
+summarize --dry-run --profile minimal
 summarize -p minimal --base-dir path/to/project
 summarize init
 summarize init --base-dir path/to/project
@@ -63,7 +66,7 @@ summarize update --repo owner/repo
 summarize version
 ```
 
-Global options such as `--base-dir` and `--profile` are parsed before the command name. The `init` command also accepts its own `--base-dir` after `init`.
+Global options such as `--base-dir`, `--profile`, and `--dry-run` are parsed before the command name. The `init` command also accepts its own `--base-dir` after `init`.
 
 ## Output format
 
@@ -76,6 +79,13 @@ Global options such as `--base-dir` and `--profile` are parsed before the comman
 ```
 
 Paths are written relative to the selected base directory and normalized with forward slashes.
+
+With `--dry-run`, `summarize` uses the same traversal, profile, prune, include, and exclude logic, but prints only the relative paths of files that would be exported:
+
+```text
+relative/path/to/file
+another/file
+```
 
 Binary files are not printed as raw bytes. If a file is not valid UTF-8, the output contains:
 
@@ -136,3 +146,5 @@ The project targets Go 1.22 and currently has no external Go module dependencies
 ## Documentation
 
 Start with [`docs/index.md`](docs/index.md) for the full technical documentation.
+
+

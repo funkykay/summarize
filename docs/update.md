@@ -115,3 +115,5 @@ The updater returns structured user-facing errors for common failure cases:
 ## Design rationale
 
 The updater avoids replacing the running binary automatically. This keeps filesystem permissions, replacement timing, and rollback decisions under user control.
+
+

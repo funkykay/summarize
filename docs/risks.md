@@ -89,3 +89,5 @@ The gitignore-like matcher is implemented in the project. It supports the patter
 - Should update support Windows and macOS Intel assets?
 - Should release version parsing use a full SemVer implementation?
 - Should large files have a size limit or streaming behavior?
+
+

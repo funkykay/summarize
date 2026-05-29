@@ -10,6 +10,10 @@ All printed file paths are relative to the base directory.
 
 The generated plain-text output containing one block per included file.
 
+## Dry run
+
+A preview mode activated with `--dry-run`. It uses the normal traversal and selection logic, but prints only the relative paths of files that would be exported.
+
 ## File block
 
 One output section in this format:
@@ -99,3 +103,5 @@ A GitHub repository identifier in `owner/repo` format.
 ## Update candidate
 
 The downloaded replacement binary written as `summarize.new`. It becomes active only if the user manually moves it over the current binary.
+
+

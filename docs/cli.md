@@ -3,7 +3,7 @@
 ## Command summary
 
 ```bash
-summarize [--base-dir <dir>] [-p|--profile <name>]
+summarize [--base-dir <dir>] [-p|--profile <name>] [--dry-run]
 summarize init [--base-dir <dir>]
 summarize update [--repo <owner/repo>]
 summarize version
@@ -20,6 +20,7 @@ The default command is the summary command. It runs when no explicit subcommand 
 | `-p <name>` | default summary | Selects a profile from `summarize.json`. |
 | `--profile <name>` | default summary | Selects a profile from `summarize.json`. |
 | `--profile=<name>` | default summary | Inline form of `--profile`. |
+| `--dry-run` | default summary | Prints only the relative paths of files that would be exported. File contents and file-block headers are not printed. |
 
 Global options are parsed before the first non-option argument. After the command name, options are command-specific.
 
@@ -27,6 +28,7 @@ Examples:
 
 ```bash
 summarize --base-dir ./project --profile ci
+summarize --base-dir ./project --profile ci --dry-run
 summarize --base-dir ./project init
 summarize init --base-dir ./project
 ```
@@ -37,6 +39,7 @@ summarize init --base-dir ./project
 summarize
 summarize --base-dir ./project
 summarize --profile ci
+summarize --dry-run
 ```
 
 Execution steps:
@@ -45,7 +48,24 @@ Execution steps:
 2. Load `base_dir/summarize.json` as the base configuration. A missing file is treated as an empty configuration.
 3. Apply the selected profile if `--profile` or `-p` is present and the profile exists.
 4. Traverse the directory tree.
-5. Print included files to stdout.
+5. Print included files to stdout. In dry-run mode, print only the included file paths.
+
+### Dry run
+
+```bash
+summarize --dry-run
+summarize --base-dir ./project --profile ci --dry-run
+```
+
+Dry run uses the same traversal, nested configuration, profile, prune, include, and exclude logic as a normal summary run. Instead of file blocks, stdout contains one normalized relative file path per line:
+
+```text
+README.md
+docs/cli.md
+internal/summary/summary.go
+```
+
+Dry-run output does not include `=== path ===` headers, file contents, binary placeholders, or access-denied markers. It is intended for checking which files would be exported before producing the full summary.
 
 ## `init`
 
@@ -104,7 +124,7 @@ Prints the value of `internal/buildinfo.Version` to stdout.
 The current source version is:
 
 ```text
-0.8.1
+0.8.2
 ```
 
 The command rejects additional arguments.
@@ -123,7 +143,13 @@ Errors are written to stderr with the prefix `Error:`. Normal command output is 
 
 ## Output details
 
-For every included UTF-8 file:
+In dry-run mode, every included file is printed as a single path line:
+
+```text
+path/from/base
+```
+
+For every included UTF-8 file in normal summary mode:
 
 ```text
 === path/from/base ===
@@ -144,3 +170,5 @@ If a directory cannot be read because of missing permissions:
 ```
 
 Traversal continues after access-denied directories.
+
+

@@ -55,6 +55,7 @@ Responsibilities:
 
 - Parse global options before a command name.
 - Resolve `--base-dir` to an existing absolute directory.
+- Track dry-run mode for the default summary command.
 - Route commands.
 - Convert returned errors into stderr output and exit code `1`.
 - Call the summary, init, update, and version packages.
@@ -172,6 +173,7 @@ Responsibilities:
 - Apply prune rules before recursion.
 - Apply selection rules before file output.
 - Print file blocks.
+- Print path-only dry-run output when requested.
 - Detect non-UTF-8 content and print a binary placeholder.
 - Convert permission-denied directory reads into an output marker instead of failing the whole run.
 
@@ -196,3 +198,5 @@ The update package is independent of `summarize.json` and traversal.
 Tests live in package `summarize_test`, outside the internal packages they exercise through the public CLI path or through package APIs where needed.
 
 `test/testutil_test.go` builds a test binary once in `TestMain` and then runs commands against temporary file trees. This makes tests close to real CLI behavior, including stdout, stderr, working directory, and exit code handling.
+
+

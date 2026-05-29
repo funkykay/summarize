@@ -15,7 +15,7 @@ import (
 	"github.com/funkykay/summarize/internal/selection"
 )
 
-func Create(profileName string, baseDir string, writer io.Writer) error {
+func Create(profileName string, baseDir string, writer io.Writer, dryRun bool) error {
 	resolvedBaseDir, err := filepath.Abs(baseDir)
 	if err != nil {
 		return err
@@ -27,10 +27,10 @@ func Create(profileName string, baseDir string, writer io.Writer) error {
 	}
 	profile.ApplyLayer(cfg, profileName)
 
-	return Directory(resolvedBaseDir, cfg, resolvedBaseDir, writer, false)
+	return Directory(resolvedBaseDir, cfg, resolvedBaseDir, writer, false, dryRun)
 }
 
-func Directory(directory string, cfg *config.Config, basePath string, writer io.Writer, loadConfigLayer bool) error {
+func Directory(directory string, cfg *config.Config, basePath string, writer io.Writer, loadConfigLayer bool, dryRun bool) error {
 	layerPushed := false
 
 	if loadConfigLayer {
@@ -50,6 +50,10 @@ func Directory(directory string, cfg *config.Config, basePath string, writer io.
 	entries, err := os.ReadDir(directory)
 	if err != nil {
 		if errors.Is(err, os.ErrPermission) {
+			if dryRun {
+				return nil
+			}
+
 			relativePath, relErr := filepath.Rel(basePath, directory)
 			if relErr != nil {
 				relativePath = directory
@@ -79,7 +83,7 @@ func Directory(directory string, cfg *config.Config, basePath string, writer io.
 		}
 
 		if info.IsDir() {
-			if err := Directory(itemPath, cfg, basePath, writer, true); err != nil {
+			if err := Directory(itemPath, cfg, basePath, writer, true, dryRun); err != nil {
 				return err
 			}
 			continue
@@ -92,6 +96,11 @@ func Directory(directory string, cfg *config.Config, basePath string, writer io.
 		relativePath, err := filepath.Rel(basePath, itemPath)
 		if err != nil {
 			relativePath = itemPath
+		}
+
+		if dryRun {
+			fmt.Fprintln(writer, filepath.ToSlash(relativePath))
+			continue
 		}
 
 		fmt.Fprintf(writer, "=== %s ===\n", filepath.ToSlash(relativePath))

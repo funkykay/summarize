@@ -27,6 +27,12 @@ Run from source:
 go run ./cmd/summarize --base-dir .
 ```
 
+Preview selected files without printing contents:
+
+```bash
+go run ./cmd/summarize --base-dir . --dry-run
+```
+
 Print version from source:
 
 ```bash
@@ -62,6 +68,7 @@ Temporary file trees are created with helper methods in `test/testutil_test.go`.
 | File | Area |
 |---|---|
 | `test/cli_test.go` | Version command, base directory handling, profile application, invalid base directory errors. |
+| `test/dry_run_test.go` | Dry-run path-only output, profile and nested config behavior, command argument rejection. |
 | `test/excludes_test.go` | Layered prune rules, negation, anchored patterns, nested configs, directory pruning. |
 | `test/initialize_test.go` | `init` command behavior and automatic prune detection. |
 | `test/profiles_test.go` | Profile include, exclude, prune, and selection mode overlays. |
@@ -86,7 +93,8 @@ A new command currently requires changes in `internal/cli/cli.go`:
 1. Extend the `switch command` in `App.Run`.
 2. Add a `run<Command>` method if command-specific parsing is needed.
 3. Keep command output on `a.stdout` and errors as returned `error` values.
-4. Add CLI-level tests through the built test binary.
+4. Decide whether existing global options such as `--base-dir`, `--profile`, and `--dry-run` should apply to the new command or be rejected after the command name.
+5. Add CLI-level tests through the built test binary.
 
 ## Adding a config key
 
@@ -113,3 +121,5 @@ Use standard Go tooling:
 gofmt -w <files>
 go test ./...
 ```
+
+

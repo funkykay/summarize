@@ -11,7 +11,7 @@ Each included file is emitted as a block:
 <file content>
 ```
 
-The traversal order is deterministic: entries inside a directory are sorted by name before they are processed.
+The traversal order is deterministic: entries inside a directory are sorted by name before they are processed. A dry run can print only the selected file paths without reading file contents into the final output.
 
 ## Why it exists
 
@@ -22,6 +22,7 @@ Common use cases:
 - Create a text snapshot of a codebase.
 - Feed selected project files into an AI assistant.
 - Compare generated project summaries across runs.
+- Check which files would be exported before generating the full output.
 - Produce reproducible plain-text input for automation.
 
 ## Scope
@@ -35,6 +36,7 @@ Common use cases:
 - File-level include and exclude selection.
 - Named profile overlays.
 - Nested configuration files in subdirectories.
+- Dry-run listing of included file paths without file contents.
 - Standalone binary update checks against GitHub Releases.
 
 `summarize` does not handle:
@@ -59,3 +61,5 @@ Common use cases:
 | Configuration file | `summarize.json` |
 | Test command | `go test ./...` |
 | Build command | `go build -o bin/summarize ./cmd/summarize` |
+
+

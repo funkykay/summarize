@@ -1,8 +1,43 @@
 {
-  "selection_mode": "include_all",
-  "include": [],
+  "selection_mode": "exclude_all",
+  "include": [
+    ".editorconfig",
+    ".gitignore",
+    "go.mod"
+  ],
   "exclude": [],
   "prune": [
-    ".git/"
-  ]
+    ".git/",
+    ".venv/",
+    "__pycache__/",
+    "*.egg-info/"
+  ],
+  "profiles": {
+    "code": {
+      "include": [
+        "cmd/",
+        "internal/"
+      ]
+    },
+    "tests": {
+      "include": [
+        "test/"
+      ]
+    },
+    "docs": {
+      "include": [
+        "docs/",
+        "README.md"
+      ]
+    },
+    "ops": {
+      "include": [
+        ".github",
+        "install.sh"
+      ]
+    },
+    "all": {
+      "selection_mode": "include_all"
+    }
+  }
 }

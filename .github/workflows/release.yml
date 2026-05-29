@@ -22,8 +22,6 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -68,8 +66,6 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -82,6 +78,7 @@ jobs:
         shell: bash
         run: |
           release_tag="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=${release_tag}" >> "$GITHUB_OUTPUT"
           echo "version=${release_tag#v}" >> "$GITHUB_OUTPUT"
 
       - name: Build standalone executable
@@ -112,6 +109,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Resolve release tag
+        id: release
+        shell: bash
+        run: |
+          release_tag="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=${release_tag}" >> "$GITHUB_OUTPUT"
+
       - name: Download all standalone binaries
         uses: actions/download-artifact@v4
         with:
@@ -122,6 +126,6 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          tag_name: ${{ steps.release.outputs.tag }}
           generate_release_notes: true
           files: release-assets/*

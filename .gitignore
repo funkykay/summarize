@@ -1,0 +1,11 @@
+# go
+/bin/
+/coverage.out
+
+# build
+out
+build/
+dist/
+
+# Mac OS
+.DS_Store

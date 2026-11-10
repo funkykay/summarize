@@ -81,6 +81,52 @@ func TestSummarizeAppliesProfile(t *testing.T) {
 	}
 }
 
+func TestSummarizeAppliesExcludeFlag(t *testing.T) {
+	baseDir := t.TempDir()
+	newFileTree().
+		JSONFile("summarize.json", map[string]any{
+			"selection_mode": "include_all",
+			"include":        []string{"skip.log"},
+			"exclude":        []string{"summarize.json"},
+			"prune":          []string{},
+		}).
+		File("keep.txt", "Keep\n").
+		File("skip.log", "Skip\n").
+		File("dist/out.txt", "Out\n").
+		File("other.tmp", "Tmp\n").
+		Create(t, baseDir)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	exitCode := cli.New(&stdout, &stderr).Run([]string{
+		"--base-dir", baseDir,
+		"--exclude", "*.log",
+		"-e", "dist/",
+		"--exclude=*.tmp",
+	})
+
+	if exitCode != 0 {
+		t.Fatalf("expected exit code 0, got %d with stderr %q", exitCode, stderr.String())
+	}
+	if stdout.String() != "=== keep.txt ===\nKeep\n\n\n" {
+		t.Fatalf("unexpected stdout: %q", stdout.String())
+	}
+}
+
+func TestExcludeFlagRequiresValue(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	exitCode := cli.New(&stdout, &stderr).Run([]string{"--exclude"})
+
+	if exitCode != 1 {
+		t.Fatalf("expected exit code 1, got %d", exitCode)
+	}
+	if !strings.Contains(stderr.String(), "--exclude requires a value") {
+		t.Fatalf("unexpected stderr: %q", stderr.String())
+	}
+}
+
 func TestInvalidBaseDirReturnsError(t *testing.T) {
 	missingDir := filepath.Join(t.TempDir(), "missing")
 	var stdout bytes.Buffer

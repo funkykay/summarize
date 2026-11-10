@@ -58,6 +58,8 @@ summarize --base-dir path/to/project
 summarize --profile minimal
 summarize --dry-run
 summarize --dry-run --profile minimal
+summarize --exclude "*.log" --exclude dist/
+summarize -e "*.log" -e dist/
 summarize -p minimal --base-dir path/to/project
 summarize init
 summarize init --base-dir path/to/project
@@ -66,7 +68,9 @@ summarize update --repo owner/repo
 summarize version
 ```
 
-Global options such as `--base-dir`, `--profile`, and `--dry-run` are parsed before the command name. The `init` command also accepts its own `--base-dir` after `init`.
+Global options such as `--base-dir`, `--profile`, `--exclude`, and `--dry-run` are parsed before the command name. The `init` command also accepts its own `--base-dir` after `init`.
+
+`-e` / `--exclude <pattern>` can be repeated. It uses the same gitignore-like patterns as the configuration and is applied as an additional `prune` rule on top of `summarize.json` and the selected profile, so matching paths are skipped even if an `include` pattern matches them.
 
 ## Output format
 

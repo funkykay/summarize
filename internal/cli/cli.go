@@ -21,9 +21,10 @@ type App struct {
 }
 
 type globalOptions struct {
-	baseDir string
-	profile string
-	dryRun  bool
+	baseDir  string
+	profile  string
+	dryRun   bool
+	excludes []string
 }
 
 func New(stdout io.Writer, stderr io.Writer) App {
@@ -38,7 +39,7 @@ func (a App) Run(args []string) int {
 	}
 
 	if command == "" {
-		if err := summary.Create(options.profile, options.baseDir, a.stdout, options.dryRun); err != nil {
+		if err := summary.Create(options.profile, options.baseDir, a.stdout, options.dryRun, options.excludes); err != nil {
 			fmt.Fprintf(a.stderr, "Error: %s\n", err)
 			return 1
 		}
@@ -166,6 +167,14 @@ func parseGlobalOptions(args []string) (globalOptions, string, []string, error) 
 			i++
 		case strings.HasPrefix(arg, "--profile="):
 			options.profile = strings.TrimPrefix(arg, "--profile=")
+		case arg == "-e" || arg == "--exclude":
+			if i+1 >= len(args) {
+				return globalOptions{}, "", nil, fmt.Errorf("%s requires a value", arg)
+			}
+			options.excludes = append(options.excludes, args[i+1])
+			i++
+		case strings.HasPrefix(arg, "--exclude="):
+			options.excludes = append(options.excludes, strings.TrimPrefix(arg, "--exclude="))
 		case arg == "--dry-run":
 			options.dryRun = true
 		case strings.HasPrefix(arg, "-"):

@@ -15,7 +15,7 @@ import (
 	"github.com/funkykay/summarize/internal/selection"
 )
 
-func Create(profileName string, baseDir string, writer io.Writer, dryRun bool) error {
+func Create(profileName string, baseDir string, writer io.Writer, dryRun bool, excludes []string) error {
 	resolvedBaseDir, err := filepath.Abs(baseDir)
 	if err != nil {
 		return err
@@ -26,6 +26,10 @@ func Create(profileName string, baseDir string, writer io.Writer, dryRun bool) e
 		return err
 	}
 	profile.ApplyLayer(cfg, profileName)
+
+	if len(excludes) > 0 {
+		cfg.PushDataLayer(config.Dict{"prune": excludes}, "cli:exclude", "<cli>")
+	}
 
 	return Directory(resolvedBaseDir, cfg, resolvedBaseDir, writer, false, dryRun)
 }

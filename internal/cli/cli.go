@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/funkykay/summarize/internal/buildinfo"
+	summarize "github.com/funkykay/summarize"
 	"github.com/funkykay/summarize/internal/initconfig"
 	"github.com/funkykay/summarize/internal/summary"
 	"github.com/funkykay/summarize/internal/update"
@@ -63,7 +63,7 @@ func (a App) Run(args []string) int {
 			fmt.Fprintf(a.stderr, "Error: unexpected argument for version: %s\n", commandArgs[0])
 			return 1
 		}
-		fmt.Fprint(a.stdout, buildinfo.Version)
+		fmt.Fprint(a.stdout, summarize.Version)
 		return 0
 	default:
 		fmt.Fprintf(a.stderr, "Error: unknown command: %s\n", command)

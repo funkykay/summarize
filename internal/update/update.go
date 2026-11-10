@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/funkykay/summarize/internal/buildinfo"
+	summarize "github.com/funkykay/summarize"
 )
 
 const (
@@ -60,7 +60,7 @@ func Binary(repoSlug string, stdout io.Writer) error {
 		return Error{Message: "Latest release does not contain a tag_name."}
 	}
 
-	currentVersion := NormalizeVersion(buildinfo.Version)
+	currentVersion := NormalizeVersion(summarize.Version)
 	targetVersion := NormalizeVersion(release.TagName)
 
 	newer, err := IsRemoteVersionNewer(currentVersion, targetVersion)

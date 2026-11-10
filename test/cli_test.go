@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/funkykay/summarize/internal/buildinfo"
+	summarize "github.com/funkykay/summarize"
 	"github.com/funkykay/summarize/internal/cli"
 )
 
@@ -19,8 +19,8 @@ func TestVersionOutputsPackageVersion(t *testing.T) {
 	if exitCode != 0 {
 		t.Fatalf("expected exit code 0, got %d", exitCode)
 	}
-	if stdout.String() != buildinfo.Version {
-		t.Fatalf("expected version %q, got %q", buildinfo.Version, stdout.String())
+	if stdout.String() != summarize.Version {
+		t.Fatalf("expected version %q, got %q", summarize.Version, stdout.String())
 	}
 	if stderr.String() != "" {
 		t.Fatalf("expected empty stderr, got %q", stderr.String())
